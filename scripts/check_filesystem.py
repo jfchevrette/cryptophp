@@ -146,7 +146,7 @@ def main():
             default=",".join(FNMATCH_PATTERNS),
             help="scan only files matching the patterns (comma seperated) [default: %default]")
     parser.add_option("-l", "--limit", dest="maxfilesize", action="store",
-            type=int, default="100",
+            type=int, default="1024",
             help="don't scan files over specified size in kb [default: %default]")
 
     (options, args) = parser.parse_args()
