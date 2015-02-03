@@ -75,10 +75,18 @@ def cryptophp_version(buf):
             return match.group(1).strip('"').strip("'")
     return None
 
-def scan_file(path):
+def scan_file(path, maxfilesize):
     """ Scan a file for CryptoPHP.
     Returns (path, msg) if file is CryptoPHP, otherwise None
     """
+
+    filestat = os.stat(path)
+    st_size = filestat.st_size
+
+    # If file size is larger than maxfilesize
+    if st_size > maxfilesize:
+        return None
+
     data = ''
     f = open(path, "rb")
     data = f.read()
@@ -102,7 +110,7 @@ def scan_file(path):
 
     return (bold(path), msg)
 
-def scan_directory(directory, patterns):
+def scan_directory(directory, patterns, maxfilesize):
     """ Recursively scan the `directory` for CryptoPHP.
     It will only scan files that match `patterns`.
 
@@ -125,7 +133,7 @@ def scan_directory(directory, patterns):
                 continue
 
             # Check contents of file
-            result = scan_file(path)
+            result = scan_file(path, maxfilesize)
             if result:
                 yield result
 
@@ -137,6 +145,9 @@ def main():
     parser.add_option("-p", "--patterns", dest="patterns", action="store",
             default=",".join(FNMATCH_PATTERNS),
             help="scan only files matching the patterns (comma seperated) [default: %default]")
+    parser.add_option("-l", "--limit", dest="maxfilesize", action="store",
+            type=int, default="100",
+            help="don't scan files over specified size in kb [default: %default]")
 
     (options, args) = parser.parse_args()
 
@@ -146,6 +157,9 @@ def main():
 
     options.patterns = options.patterns.split(",")
     print("File matching patterns: %r" % options.patterns)
+
+    print("Maximum size if scanned files: %rkb" % options.maxfilesize)
+    options.maxfilesize = options.maxfilesize * 1024
 
     # default to root if user did not specify a directory as argument
     if not args:
@@ -158,13 +172,13 @@ def main():
             continue
         if os.path.isfile(directory):
             print('Scanning file: %s' % directory)
-            result = scan_file(directory)
+            result = scan_file(directory, options.maxfilesize)
             if result:
                 print(" %s: %s" % result)
                 found.append(result)
             continue
         print('Recursively scanning directory: %s' % directory)
-        for result in scan_directory(directory, options.patterns):
+        for result in scan_directory(directory, options.patterns, options.maxfilesize):
             print(" %s: %s" % result)
             found.append(result)
 
